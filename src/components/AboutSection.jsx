@@ -7,7 +7,7 @@ import ParallaxImage from "./ParallaxImage";
 import FloatingCard from "./FloatingCard";
 import RevealText from "./RevealText";
 import image1 from "../assets/image-1.png";
-import about from "../assets/About.jpeg";
+import about from "../assets/About.png";
 
 gsap.registerPlugin(ScrollTrigger);
 
