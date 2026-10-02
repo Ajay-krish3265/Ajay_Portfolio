@@ -113,9 +113,13 @@ export default function SkillsSection() {
       }
     );
 
-    // Throttled mouse movement response using requestAnimationFrame
+    // Throttled mouse movement response using requestAnimationFrame (Viewport check enabled)
     let rAFId = null;
     const handleMouseMove = (e) => {
+      if (!orbitContainerRef.current) return;
+      const rect = orbitContainerRef.current.getBoundingClientRect();
+      if (rect.bottom < -100 || rect.top > window.innerHeight + 100) return;
+
       if (rAFId) return;
       const clientX = e.clientX;
       const clientY = e.clientY;
@@ -123,14 +127,14 @@ export default function SkillsSection() {
       rAFId = requestAnimationFrame(() => {
         rAFId = null;
         if (!orbitContainerRef.current) return;
-        const xOffset = (clientX - window.innerWidth / 2) * 0.04;
-        const yOffset = (clientY - window.innerHeight / 2) * 0.04;
+        const xOffset = (clientX - window.innerWidth / 2) * 0.03;
+        const yOffset = (clientY - window.innerHeight / 2) * 0.03;
 
         gsap.to(orbitContainerRef.current, {
           x: xOffset,
           y: yOffset,
-          rotateX: -yOffset * 0.3,
-          rotateY: xOffset * 0.3,
+          rotateX: -yOffset * 0.2,
+          rotateY: xOffset * 0.2,
           duration: 0.8,
           ease: "power1.out"
         });

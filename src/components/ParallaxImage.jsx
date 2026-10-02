@@ -72,7 +72,7 @@ export default function ParallaxImage({
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden group rounded-xl border border-white/5 bg-zinc-900 will-change-transform shadow-[0_10px_35px_rgba(0,0,0,0.5)] ${className}`}
+      className={`relative overflow-hidden group rounded-xl border border-white/5 bg-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.5)] ${className}`}
     >
       {/* Cinematic Diagonal Scanline Overlay */}
       {showOverlay && (
@@ -98,7 +98,7 @@ export default function ParallaxImage({
         ref={imageRef}
         src={src}
         alt={alt}
-        className={`w-full h-full object-cover transition-all duration-700 ease-out will-change-transform ${imgClassName}`}
+        className={`w-full h-full object-cover ${imgClassName}`}
       />
 
       {/* Swipe Reveal Mask */}

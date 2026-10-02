@@ -43,23 +43,47 @@ export default function FloatingCard({
     const gyTo = gsap.quickTo(tiltProxy, "gy", { duration: 0.3, ease: "power2.out", onUpdate: updateTiltAndGlow });
     const oTo = gsap.quickTo(tiltProxy, "o", { duration: 0.4, ease: "power2.out", onUpdate: updateTiltAndGlow });
 
+    let cachedRect = null;
+    let rAFId = null;
+
+    const handleMouseEnter = () => {
+      cachedRect = card.getBoundingClientRect();
+    };
+
     const handleMouseMove = (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      if (rAFId) return;
+      
+      const clientX = e.clientX;
+      const clientY = e.clientY;
 
-      // Compute tilt angles
-      const rotateX = ((y / rect.height) - 0.5) * -tiltMax;
-      const rotateY = ((x / rect.width) - 0.5) * tiltMax;
+      rAFId = requestAnimationFrame(() => {
+        rAFId = null;
+        if (!cachedRect) {
+          cachedRect = card.getBoundingClientRect();
+        }
+        
+        const x = clientX - cachedRect.left;
+        const y = clientY - cachedRect.top;
 
-      rxTo(rotateX);
-      ryTo(rotateY);
-      gxTo(x);
-      gyTo(y);
-      oTo(1);
+        // Compute tilt angles
+        const rotateX = ((y / (cachedRect.height || 1)) - 0.5) * -tiltMax;
+        const rotateY = ((x / (cachedRect.width || 1)) - 0.5) * tiltMax;
+
+        rxTo(rotateX);
+        ryTo(rotateY);
+        gxTo(x);
+        gyTo(y);
+        oTo(1);
+      });
     };
 
     const handleMouseLeave = () => {
+      if (rAFId) {
+        cancelAnimationFrame(rAFId);
+        rAFId = null;
+      }
+      cachedRect = null;
+      
       // Spring back tilt
       rxTo(0);
       ryTo(0);
@@ -68,15 +92,18 @@ export default function FloatingCard({
       // Restore scaling
       gsap.to(card, {
         transform: "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)",
-        duration: 0.7,
-        ease: "elastic.out(1, 0.55)",
+        duration: 0.5,
+        ease: "power2.out",
       });
     };
 
-    card.addEventListener("mousemove", handleMouseMove);
-    card.addEventListener("mouseleave", handleMouseLeave);
+    card.addEventListener("mouseenter", handleMouseEnter, { passive: true });
+    card.addEventListener("mousemove", handleMouseMove, { passive: true });
+    card.addEventListener("mouseleave", handleMouseLeave, { passive: true });
 
     return () => {
+      if (rAFId) cancelAnimationFrame(rAFId);
+      card.removeEventListener("mouseenter", handleMouseEnter);
       card.removeEventListener("mousemove", handleMouseMove);
       card.removeEventListener("mouseleave", handleMouseLeave);
     };

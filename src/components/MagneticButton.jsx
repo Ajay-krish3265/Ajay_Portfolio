@@ -15,34 +15,58 @@ export default function MagneticButton({
     const button = buttonRef.current;
     if (!button || disabled) return;
 
-    const handleMouseMove = (e) => {
-      const rect = button.getBoundingClientRect();
-      const x = e.clientX - (rect.left + rect.width / 2);
-      const y = e.clientY - (rect.top + rect.height / 2);
+    let cachedRect = null;
+    let rAFId = null;
 
-      // Interpolate x and y by 35% to pull towards pointer
-      gsap.to(button, {
-        x: x * 0.35,
-        y: y * 0.35,
-        duration: 0.4,
-        ease: "power2.out",
+    const handleMouseEnter = () => {
+      cachedRect = button.getBoundingClientRect();
+    };
+
+    const handleMouseMove = (e) => {
+      if (rAFId) return;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      rAFId = requestAnimationFrame(() => {
+        rAFId = null;
+        if (!cachedRect) cachedRect = button.getBoundingClientRect();
+
+        const x = clientX - (cachedRect.left + cachedRect.width / 2);
+        const y = clientY - (cachedRect.top + cachedRect.height / 2);
+
+        // Interpolate x and y by 35% to pull towards pointer
+        gsap.to(button, {
+          x: x * 0.35,
+          y: y * 0.35,
+          duration: 0.4,
+          ease: "power2.out",
+        });
       });
     };
 
     const handleMouseLeave = () => {
-      // Elastic spring back to center
+      if (rAFId) {
+        cancelAnimationFrame(rAFId);
+        rAFId = null;
+      }
+      cachedRect = null;
+
+      // Spring back to center smoothly
       gsap.to(button, {
         x: 0,
         y: 0,
-        duration: 0.7,
-        ease: "elastic.out(1, 0.45)",
+        duration: 0.6,
+        ease: "power2.out",
       });
     };
 
-    button.addEventListener("mousemove", handleMouseMove);
-    button.addEventListener("mouseleave", handleMouseLeave);
+    button.addEventListener("mouseenter", handleMouseEnter, { passive: true });
+    button.addEventListener("mousemove", handleMouseMove, { passive: true });
+    button.addEventListener("mouseleave", handleMouseLeave, { passive: true });
 
     return () => {
+      if (rAFId) cancelAnimationFrame(rAFId);
+      button.removeEventListener("mouseenter", handleMouseEnter);
       button.removeEventListener("mousemove", handleMouseMove);
       button.removeEventListener("mouseleave", handleMouseLeave);
     };

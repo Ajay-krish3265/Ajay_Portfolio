@@ -59,7 +59,7 @@ export default function RevealText({
           key={idx}
           className="inline-block overflow-hidden mr-[0.3em] my-[0.1em]"
         >
-          <span className="reveal-word inline-block will-change-transform opacity-0">
+          <span className="reveal-word inline-block opacity-0">
             {word}
           </span>
         </span>

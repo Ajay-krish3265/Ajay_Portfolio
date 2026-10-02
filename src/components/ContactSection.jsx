@@ -35,8 +35,16 @@ export default function ContactSection() {
     </svg>
   );
 
-  // Spotlight mouse-follow event handler (Throttled with requestAnimationFrame)
+  // Spotlight mouse-follow event handler (Cached rect + rAF)
   const rAFRef = useRef(null);
+  const cachedRectRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (sectionRef.current) {
+      cachedRectRef.current = sectionRef.current.getBoundingClientRect();
+    }
+  };
+
   const handleMouseMove = (e) => {
     if (rAFRef.current) return;
     const clientX = e.clientX;
@@ -45,7 +53,10 @@ export default function ContactSection() {
     rAFRef.current = requestAnimationFrame(() => {
       rAFRef.current = null;
       if (!spotlightRef.current || !sectionRef.current) return;
-      const rect = sectionRef.current.getBoundingClientRect();
+      if (!cachedRectRef.current) {
+        cachedRectRef.current = sectionRef.current.getBoundingClientRect();
+      }
+      const rect = cachedRectRef.current;
       const x = clientX - rect.left;
       const y = clientY - rect.top;
 
@@ -104,6 +115,7 @@ export default function ContactSection() {
   return (
     <section
       ref={sectionRef}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       id="contact"
       className="relative w-full min-h-screen py-24 sm:py-32 md:py-40 bg-[#030303] overflow-hidden flex flex-col justify-center"

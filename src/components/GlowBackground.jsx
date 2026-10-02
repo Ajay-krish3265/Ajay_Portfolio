@@ -45,13 +45,24 @@ export default function GlowBackground({ color = "cyan", intensity = "soft" }) {
 
   const colors = getGlowColors();
 
-  // Mouse Follow Spotlight effect
+  // Mouse Follow Spotlight effect (Cached rect & offscreen check for 0 layout thrashing)
   useEffect(() => {
     const spotlight = spotlightRef.current;
-    if (!spotlight) return;
+    const container = containerRef.current;
+    if (!spotlight || !container) return;
 
-    // Create a local numeric proxy for GSAP quickTo
-    const mouseProxy = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let rect = container.getBoundingClientRect();
+
+    const updateRect = () => {
+      if (container) {
+        rect = container.getBoundingClientRect();
+      }
+    };
+
+    window.addEventListener("resize", updateRect, { passive: true });
+    window.addEventListener("scroll", updateRect, { passive: true });
+
+    const mouseProxy = { x: rect.width / 2, y: rect.height / 2 };
 
     const updateSpotlight = () => {
       if (spotlight) {
@@ -59,47 +70,59 @@ export default function GlowBackground({ color = "cyan", intensity = "soft" }) {
       }
     };
 
-    const xTo = gsap.quickTo(mouseProxy, "x", { duration: 1.2, ease: "power3.out", onUpdate: updateSpotlight });
-    const yTo = gsap.quickTo(mouseProxy, "y", { duration: 1.2, ease: "power3.out", onUpdate: updateSpotlight });
+    const xTo = gsap.quickTo(mouseProxy, "x", { duration: 1.0, ease: "power2.out", onUpdate: updateSpotlight });
+    const yTo = gsap.quickTo(mouseProxy, "y", { duration: 1.0, ease: "power2.out", onUpdate: updateSpotlight });
 
+    let rAFId = null;
     const handleMouseMove = (e) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      // Fast offscreen check before computing
+      if (rect.bottom < -100 || rect.top > window.innerHeight + 100) return;
 
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      xTo(x);
-      yTo(y);
+      if (rAFId) return;
+      rAFId = requestAnimationFrame(() => {
+        rAFId = null;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        xTo(x);
+        yTo(y);
+      });
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => {
+      if (rAFId) cancelAnimationFrame(rAFId);
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect);
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [colors.spotlight]);
 
-  // Orb float animation using GSAP Ticker for performance
+  // Orb float animation using GSAP timeline loops (GPU accelerated without ticker spam)
   useEffect(() => {
-    let tickCount = 0;
+    if (!orb1Ref.current || !orb2Ref.current) return;
 
-    const onTick = () => {
-      tickCount += 0.008;
+    const tween1 = gsap.to(orb1Ref.current, {
+      x: 60,
+      y: -40,
+      duration: 12,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut"
+    });
 
-      const x1 = Math.sin(tickCount) * 80;
-      const y1 = Math.cos(tickCount * 0.8) * 60;
-      const x2 = Math.cos(tickCount * 1.2) * 90;
-      const y2 = Math.sin(tickCount * 0.9) * 70;
+    const tween2 = gsap.to(orb2Ref.current, {
+      x: -70,
+      y: 50,
+      duration: 15,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut"
+    });
 
-      if (orb1Ref.current) {
-        gsap.set(orb1Ref.current, { x: x1, y: y1 });
-      }
-      if (orb2Ref.current) {
-        gsap.set(orb2Ref.current, { x: x2, y: y2 });
-      }
+    return () => {
+      tween1.kill();
+      tween2.kill();
     };
-
-    gsap.ticker.add(onTick);
-    return () => gsap.ticker.remove(onTick);
   }, []);
 
   return (
@@ -107,22 +130,14 @@ export default function GlowBackground({ color = "cyan", intensity = "soft" }) {
       ref={containerRef}
       className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-0 bg-transparent"
     >
-      {/* Noise Texture Overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-        }}
-      ></div>
-
       {/* Floating Ambient Orbs */}
       <div
         ref={orb1Ref}
-        className={`absolute top-1/4 -left-10 w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full ${colors.glow1} blur-[120px] pointer-events-none animate-pulse-glow will-change-transform`}
+        className={`absolute top-1/4 -left-10 w-[45vw] h-[45vw] max-w-[500px] max-h-[500px] rounded-full ${colors.glow1} blur-[90px] pointer-events-none animate-pulse-glow`}
       ></div>
       <div
         ref={orb2Ref}
-        className={`absolute bottom-1/4 -right-10 w-[45vw] h-[45vw] max-w-[550px] max-h-[550px] rounded-full ${colors.glow2} blur-[140px] pointer-events-none animate-pulse-glow will-change-transform`}
+        className={`absolute bottom-1/4 -right-10 w-[40vw] h-[40vw] max-w-[450px] max-h-[450px] rounded-full ${colors.glow2} blur-[100px] pointer-events-none animate-pulse-glow`}
         style={{ animationDelay: "2.5s" }}
       ></div>
 

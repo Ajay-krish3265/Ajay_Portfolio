@@ -11,13 +11,13 @@ gsap.registerPlugin(ScrollTrigger)
 
 // Initialize Lenis Smooth Scroll
 const lenis = new Lenis({
-  duration: 1.4,
+  duration: 1.2,
   easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
   orientation: 'vertical',
   gestureOrientation: 'vertical',
   smoothWheel: true,
-  wheelMultiplier: 1.1,
-  touchMultiplier: 1.5,
+  wheelMultiplier: 1.0,
+  touchMultiplier: 1.2,
   infinite: false,
 })
 
@@ -28,8 +28,8 @@ gsap.ticker.add((time) => {
   lenis.raf(time * 1000)
 })
 
-// Disable lag smoothing in GSAP to keep it fully synced with Lenis RAF
-gsap.ticker.lagSmoothing(0)
+// Enable smooth lag smoothing in GSAP to absorb minor frame drops gracefully (max 500ms lag, target 33ms/30fps threshold)
+gsap.ticker.lagSmoothing(500, 33)
 
 // Expose lenis globally for smooth navigation within components
 window.lenis = lenis

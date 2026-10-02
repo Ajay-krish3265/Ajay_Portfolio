@@ -73,7 +73,7 @@ export default function ProjectsSection() {
           trigger: trigger,
           pin: true,
           pinSpacing: true,
-          scrub: 0.5, // Crisp, responsive 60fps scrub
+          scrub: 0.8, // Smooth 60-120fps scrub momentum
           start: "top top",
           end: () => `+=${getScrollAmount()}`,
           anticipatePin: 1,
@@ -87,7 +87,7 @@ export default function ProjectsSection() {
           trigger: trigger,
           start: "top top",
           end: () => `+=${getScrollAmount()}`,
-          scrub: 0.5,
+          scrub: 0.8,
         }
       })
         .to(bgTransitionRef.current, {
@@ -115,8 +115,7 @@ export default function ProjectsSection() {
     <div
       ref={triggerRef}
       id="creations"
-      className="relative w-full overflow-hidden bg-[#030303] will-change-transform"
-      style={{ transform: "translateZ(0)" }}
+      className="relative w-full overflow-hidden bg-[#030303]"
     >
       {/* Dynamic background color morph layer */}
       <div
@@ -130,8 +129,7 @@ export default function ProjectsSection() {
       {/* Horizontal Sliding Track */}
       <div
         ref={scrollTrackRef}
-        className="flex w-[300vw] h-screen items-center relative z-10 will-change-transform"
-        style={{ transform: "translate3d(0,0,0)" }}
+        className="flex w-[300vw] h-screen items-center relative z-10"
       >
         {PROJECTS.map((proj, idx) => {
           const isCyan = proj.glowColor === "cyan";
@@ -188,13 +186,14 @@ export default function ProjectsSection() {
                         loop
                         muted
                         playsInline
-                        className="project-img w-full h-full object-cover will-change-transform"
+                        preload="metadata"
+                        className="project-img w-full h-full object-cover"
                       />
                     ) : (
                       <img
                         src={proj.image}
                         alt={proj.title}
-                        className="project-img w-full h-full object-cover will-change-transform"
+                        className="project-img w-full h-full object-cover"
                       />
                     )}
                   </div>

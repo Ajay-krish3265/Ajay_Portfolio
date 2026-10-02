@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import gsap from "gsap";
 import image1 from "../assets/image-1.png";
-import image2 from "../assets/image-2.png";
+import image2Video from "../assets/image-2.mp4";
 
 export default function PremiumHero() {
   const heroRef = useRef(null);
@@ -27,22 +27,27 @@ export default function PremiumHero() {
       radius: 0
     };
 
-    // Fast inline style updating function
+    // Fast inline style updating function (rAF throttled)
+    let rAFId = null;
     const updateMask = () => {
-      const xVal = maskProxy.x;
-      const yVal = maskProxy.y;
-      const rVal = maskProxy.radius;
+      if (rAFId) return;
+      rAFId = requestAnimationFrame(() => {
+        rAFId = null;
+        const xVal = maskProxy.x;
+        const yVal = maskProxy.y;
+        const rVal = maskProxy.radius;
 
-      // When radius is effectively zero, remove mask entirely so top layer is fully visible
-      if (rVal < 1) {
-        target.style.maskImage = 'none';
-        target.style.webkitMaskImage = 'none';
-        return;
-      }
+        // When radius is effectively zero, remove mask entirely so top layer is fully visible
+        if (rVal < 1) {
+          target.style.maskImage = 'none';
+          target.style.webkitMaskImage = 'none';
+          return;
+        }
 
-      // Apply the feather-edged radial gradient directly as inline styles
-      target.style.maskImage = `radial-gradient(circle ${rVal}px at ${xVal}px ${yVal}px, transparent 0%, transparent 60%, black 100%)`;
-      target.style.webkitMaskImage = `radial-gradient(circle ${rVal}px at ${xVal}px ${yVal}px, transparent 0%, transparent 60%, black 100%)`;
+        // Apply the feather-edged radial gradient directly as inline styles
+        target.style.maskImage = `radial-gradient(circle ${rVal}px at ${xVal}px ${yVal}px, transparent 0%, transparent 60%, black 100%)`;
+        target.style.webkitMaskImage = `radial-gradient(circle ${rVal}px at ${xVal}px ${yVal}px, transparent 0%, transparent 60%, black 100%)`;
+      });
     };
 
     // Start with no mask at all — top layer fully visible
@@ -54,11 +59,22 @@ export default function PremiumHero() {
     const yTo = gsap.quickTo(maskProxy, "y", { duration: 0.8, ease: "power3.out", onUpdate: updateMask });
     const radiusTo = gsap.quickTo(maskProxy, "radius", { duration: 0.6, ease: "power2.out", onUpdate: updateMask });
 
-    // Calculate coordinates relative to hero bounding box
+    // Calculate coordinates relative to hero bounding box (Cached rect)
+    let cachedHeroRect = null;
+
+    const handleMouseEnterHero = () => {
+      if (heroRef.current) {
+        cachedHeroRect = heroRef.current.getBoundingClientRect();
+      }
+    };
+
     const handleMouseMove = (e) => {
-      const rect = heroRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      if (!cachedHeroRect) {
+        if (heroRef.current) cachedHeroRect = heroRef.current.getBoundingClientRect();
+        else return;
+      }
+      const x = e.clientX - cachedHeroRect.left;
+      const y = e.clientY - cachedHeroRect.top;
 
       xTo(x);
       yTo(y);
@@ -67,9 +83,12 @@ export default function PremiumHero() {
     const handleTouchMove = (e) => {
       if (e.touches.length === 0) return;
       const touch = e.touches[0];
-      const rect = heroRef.current.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
+      if (!cachedHeroRect) {
+        if (heroRef.current) cachedHeroRect = heroRef.current.getBoundingClientRect();
+        else return;
+      }
+      const x = touch.clientX - cachedHeroRect.left;
+      const y = touch.clientY - cachedHeroRect.top;
 
       xTo(x);
       yTo(y);
@@ -77,19 +96,21 @@ export default function PremiumHero() {
 
     // Hover triggers expansion of radial gradient hole
     const handleExpand = () => {
+      if (heroRef.current) cachedHeroRect = heroRef.current.getBoundingClientRect();
       radiusTo(180);
     };
 
     // Hover leave triggers cinematic dissolve back to 0
     const handleCollapse = () => {
+      cachedHeroRect = null;
       radiusTo(0);
     };
 
     const hero = heroRef.current;
     if (hero) {
-      hero.addEventListener("mousemove", handleMouseMove);
-      hero.addEventListener("mouseenter", handleExpand);
-      hero.addEventListener("mouseleave", handleCollapse);
+      hero.addEventListener("mousemove", handleMouseMove, { passive: true });
+      hero.addEventListener("mouseenter", handleExpand, { passive: true });
+      hero.addEventListener("mouseleave", handleCollapse, { passive: true });
 
       hero.addEventListener("touchmove", handleTouchMove, { passive: true });
       hero.addEventListener("touchstart", handleExpand, { passive: true });
@@ -97,6 +118,7 @@ export default function PremiumHero() {
     }
 
     return () => {
+      if (rAFId) cancelAnimationFrame(rAFId);
       if (hero) {
         hero.removeEventListener("mousemove", handleMouseMove);
         hero.removeEventListener("mouseenter", handleExpand);
@@ -152,11 +174,11 @@ export default function PremiumHero() {
       {/* Ambient Glow Backgrounds */}
       <div
         ref={glow1Ref}
-        className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none z-0 animate-pulse-glow"
+        className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] rounded-full bg-cyan-500/10 blur-[90px] pointer-events-none z-0 animate-pulse-glow"
       ></div>
       <div
         ref={glow2Ref}
-        className="absolute bottom-1/3 right-1/4 w-[45vw] h-[45vw] max-w-[650px] max-h-[650px] rounded-full bg-blue-500/10 blur-[150px] pointer-events-none z-0 animate-pulse-glow"
+        className="absolute bottom-1/3 right-1/4 w-[45vw] h-[45vw] max-w-[650px] max-h-[650px] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none z-0 animate-pulse-glow"
         style={{ animationDelay: "3s" }}
       ></div>
 
@@ -165,11 +187,15 @@ export default function PremiumHero() {
         ref={imageContainerRef}
         className="absolute inset-0 w-full h-full pointer-events-none z-10 select-none overflow-hidden"
       >
-        {/* Layer 2: Bottom Image (Revealed Layer) */}
+        {/* Layer 2: Bottom Video (Revealed Layer) */}
         <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center">
-          <img
-            src={image2}
-            alt="Bottom Reveal Layer"
+          <video
+            src={image2Video}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
             className="w-full h-full object-cover pointer-events-none opacity-85 select-none"
           />
         </div>

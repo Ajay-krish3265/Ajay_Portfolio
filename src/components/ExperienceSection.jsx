@@ -53,6 +53,19 @@ export default function ExperienceSection() {
     const backdropYears = trigger.querySelectorAll(".experience-backdrop-year");
 
     const ctx = gsap.context(() => {
+      // Pre-calculate node thresholds relative to trackContainer
+      let nodeThresholds = [];
+      const calcThresholds = () => {
+        const trackHeight = trackContainer.offsetHeight || 1;
+        const trackTop = trackContainer.offsetTop;
+        nodeThresholds = Array.from(nodes).map((node) => {
+          const parentItem = node.closest('.relative') || node;
+          const nodeCenter = parentItem.offsetTop + node.offsetTop + node.offsetHeight / 2;
+          return Math.max(0, Math.min(1, nodeCenter / trackHeight));
+        });
+      };
+      calcThresholds();
+
       // Master timeline driving fillLine and checking node thresholds in real time
       const mainTl = gsap.timeline({
         scrollTrigger: {
@@ -60,17 +73,12 @@ export default function ExperienceSection() {
           start: "top 55%",
           end: "bottom 65%",
           scrub: true,
+          onRefresh: calcThresholds,
           onUpdate: (self) => {
             const progress = self.progress; // Line fill fraction from 0.0 to 1.0
-            const trackRect = trackContainer.getBoundingClientRect();
-            const trackHeight = trackRect.height || 1;
 
-            nodes.forEach((node) => {
-              const nodeRect = node.getBoundingClientRect();
-              // Calculate node's vertical center relative to line track top
-              const nodeCenterRel = (nodeRect.top + nodeRect.height / 2) - trackRect.top;
-              const nodeThreshold = Math.max(0, Math.min(1, nodeCenterRel / trackHeight));
-
+            nodes.forEach((node, idx) => {
+              const nodeThreshold = nodeThresholds[idx] || (idx + 0.5) / nodes.length;
               const innerDot = node.querySelector(".timeline-inner-dot");
               const pulseRing = node.querySelector(".timeline-pulse-ring");
 
